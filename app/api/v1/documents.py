@@ -115,6 +115,37 @@ async def list_documents(
     )
 
 
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Document",
+)
+async def delete_document(
+    document_id: uuid.UUID,
+    x_tenant_id: Annotated[str, Header(description="Tenant scope identifier")] = "default-tenant",
+    session: AsyncSession = Depends(get_db_session),
+) -> None:
+    """Delete document and all associated pages, layout blocks, and extracted fields."""
+    from app.repositories.document_repo import DocumentRepository
+
+    repo = DocumentRepository(session)
+    doc = await repo.get_by_id(document_id=document_id, tenant_id=x_tenant_id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found for tenant {x_tenant_id}",
+        )
+
+    # Clean up storage payload
+    storage = get_storage_provider()
+    await storage.delete_object(doc.storage_key)
+
+    # Cascade delete in database
+    await repo.delete(document_id=document_id, tenant_id=x_tenant_id)
+    await session.commit()
+
+
+
 @router.post(
     "",
     response_model=DocumentUploadResponse,
