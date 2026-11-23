@@ -13,7 +13,11 @@ from app.core.validation import FileValidationError
 from app.db.session import get_db_session
 from app.queue.base import PipelineJob
 from app.queue.dispatcher import get_task_queue
-from app.schemas.document import DocumentStatusResponse, DocumentUploadResponse
+from app.schemas.document import (
+    DocumentListResponse,
+    DocumentStatusResponse,
+    DocumentUploadResponse,
+)
 from app.services.ingest_service import DocumentIngestService
 from app.storage.s3 import get_storage_provider
 
@@ -57,6 +61,57 @@ async def get_document(
         error_message=doc.error_message,
         created_at=doc.created_at,
         updated_at=doc.updated_at,
+    )
+
+
+@router.get(
+    "",
+    response_model=DocumentListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List Ingested Documents",
+)
+async def list_documents(
+    skip: int = 0,
+    limit: int = 50,
+    doc_status: str | None = None,
+    x_tenant_id: Annotated[str, Header(description="Tenant scope identifier")] = "default-tenant",
+    session: AsyncSession = Depends(get_db_session),
+) -> DocumentListResponse:
+    """Retrieve paginated documents for the tenant."""
+    from app.repositories.document_repo import DocumentRepository
+
+    repo = DocumentRepository(session)
+    docs = await repo.list_documents(
+        tenant_id=x_tenant_id,
+        skip=skip,
+        limit=limit,
+        status=doc_status,
+    )
+
+    items = [
+        DocumentStatusResponse(
+            id=d.id,
+            tenant_id=d.tenant_id,
+            filename=d.filename,
+            mime_type=d.mime_type,
+            sha256=d.sha256,
+            page_count=d.page_count,
+            doc_type=d.doc_type,
+            doc_type_confidence=d.doc_type_confidence,
+            status=d.status,
+            pipeline_version=d.pipeline_version,
+            error_message=d.error_message,
+            created_at=d.created_at,
+            updated_at=d.updated_at,
+        )
+        for d in docs
+    ]
+
+    return DocumentListResponse(
+        items=items,
+        total=len(items),
+        skip=skip,
+        limit=limit,
     )
 
 
