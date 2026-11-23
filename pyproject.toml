@@ -46,3 +46,25 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4"]
+ignore = ["E501"]
+
+[tool.ruff.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --asyncio-mode=auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
