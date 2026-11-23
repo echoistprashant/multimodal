@@ -18,6 +18,7 @@ from app.schemas.document import (
     DocumentStatusResponse,
     DocumentUploadResponse,
 )
+from app.schemas.page import BlockSummaryResponse, PageDetailResponse
 from app.services.ingest_service import DocumentIngestService
 from app.storage.s3 import get_storage_provider
 
@@ -143,6 +144,76 @@ async def delete_document(
     # Cascade delete in database
     await repo.delete(document_id=document_id, tenant_id=x_tenant_id)
     await session.commit()
+
+
+@router.get(
+    "/{document_id}/pages/{page_no}",
+    response_model=PageDetailResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Page Details and Layout Blocks",
+)
+async def get_document_page(
+    document_id: uuid.UUID,
+    page_no: int,
+    x_tenant_id: Annotated[str, Header(description="Tenant scope identifier")] = "default-tenant",
+    session: AsyncSession = Depends(get_db_session),
+) -> PageDetailResponse:
+    """Retrieve rendered page metadata, image reference URL, and layout blocks."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+    from app.models.page import Page
+    from app.repositories.document_repo import DocumentRepository
+
+    repo = DocumentRepository(session)
+    doc = await repo.get_by_id(document_id=document_id, tenant_id=x_tenant_id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+
+    stmt = (
+        select(Page)
+        .options(selectinload(Page.blocks))
+        .where(Page.document_id == document_id, Page.page_no == page_no)
+    )
+    result = await session.execute(stmt)
+    page = result.scalar_one_or_none()
+
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Page {page_no} not found for document {document_id}",
+        )
+
+    storage = get_storage_provider()
+    image_url = storage.get_url(page.image_key) if page.image_key else None
+
+    blocks_summary = [
+        BlockSummaryResponse(
+            id=b.id,
+            type=b.type,
+            reading_order=b.reading_order,
+            bbox=[b.x0, b.y0, b.x1, b.y1],
+            text=b.text,
+        )
+        for b in page.blocks
+    ]
+
+    return PageDetailResponse(
+        id=page.id,
+        document_id=page.document_id,
+        page_no=page.page_no,
+        width_px=page.width_px,
+        height_px=page.height_px,
+        dpi=page.dpi,
+        route=page.route,
+        quality_score=page.quality_score,
+        rotation=page.rotation,
+        image_url=image_url,
+        blocks=blocks_summary,
+        created_at=page.created_at,
+    )
 
 
 
