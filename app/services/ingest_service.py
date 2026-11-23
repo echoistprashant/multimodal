@@ -74,26 +74,37 @@ class DocumentIngestService:
         storage_key = f"tenants/{tenant_id}/docs/{sha256_hash[:12]}/{clean_filename}"
 
         # 5. Persist raw binary to storage provider (immutable)
-        await self.storage.put_object(
-            key=storage_key,
-            data=content,
-            content_type=mime_type,
-        )
+        try:
+            await self.storage.put_object(
+                key=storage_key,
+                data=content,
+                content_type=mime_type,
+            )
+        except Exception as err:
+            logger.error(f"Failed to write document to storage: {err}", exc_info=True)
+            raise
 
-        # 6. Create database entity record
-        new_doc = Document(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            filename=clean_filename,
-            mime_type=mime_type,
-            sha256=sha256_hash,
-            storage_key=storage_key,
-            page_count=0,
-            status="uploaded",
-            pipeline_version="v1.0",
-        )
-        saved_doc = await self.repo.create(new_doc)
-        await self.session.commit()
+        # 6. Create database entity record inside safe transaction block
+        try:
+            new_doc = Document(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                filename=clean_filename,
+                mime_type=mime_type,
+                sha256=sha256_hash,
+                storage_key=storage_key,
+                page_count=0,
+                status="uploaded",
+                pipeline_version="v1.0",
+            )
+            saved_doc = await self.repo.create(new_doc)
+            await self.session.commit()
+        except Exception as db_err:
+            await self.session.rollback()
+            # Clean up storage orphan
+            await self.storage.delete_object(storage_key)
+            logger.error(f"Database registration failed, storage cleaned: {db_err}", exc_info=True)
+            raise
 
         logger.info(
             f"Successfully ingested new document {clean_filename} (id={saved_doc.id}) for tenant {tenant_id}",
