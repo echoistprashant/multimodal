@@ -16,15 +16,15 @@ router = APIRouter()
 class HealthResponse(BaseModel):
     """Liveness probe response model."""
 
-    status: str = Field(default="ok", example="ok")
-    env: str = Field(..., example="development")
-    version: str = Field(default="0.1.0", example="0.1.0")
+    status: str = Field(default="ok", examples=["ok"])
+    env: str = Field(..., examples=["development"])
+    version: str = Field(default="0.1.0", examples=["0.1.0"])
 
 
 class ReadyResponse(BaseModel):
     """Readiness probe response model checking dependencies."""
 
-    status: str = Field(default="ready", example="ready")
+    status: str = Field(default="ready", examples=["ready"])
     checks: dict[str, Any] = Field(default_factory=dict)
 
 

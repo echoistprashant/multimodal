@@ -64,7 +64,7 @@ warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --asyncio-mode=auto"
+addopts = "-ra -q"
 testpaths = ["tests"]
 pythonpath = ["."]
 
