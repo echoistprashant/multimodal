@@ -13,12 +13,51 @@ from app.core.validation import FileValidationError
 from app.db.session import get_db_session
 from app.queue.base import PipelineJob
 from app.queue.dispatcher import get_task_queue
-from app.schemas.document import DocumentUploadResponse
+from app.schemas.document import DocumentStatusResponse, DocumentUploadResponse
 from app.services.ingest_service import DocumentIngestService
 from app.storage.s3 import get_storage_provider
 
 logger = get_logger("app.api.v1.documents")
 router = APIRouter(prefix="/api/v1/documents", tags=["Documents"])
+
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentStatusResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Document Status and Metadata",
+)
+async def get_document(
+    document_id: uuid.UUID,
+    x_tenant_id: Annotated[str, Header(description="Tenant scope identifier")] = "default-tenant",
+    session: AsyncSession = Depends(get_db_session),
+) -> DocumentStatusResponse:
+    """Retrieve processing status and extracted attributes for a document."""
+    from app.repositories.document_repo import DocumentRepository
+
+    repo = DocumentRepository(session)
+    doc = await repo.get_by_id(document_id=document_id, tenant_id=x_tenant_id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found for tenant {x_tenant_id}",
+        )
+
+    return DocumentStatusResponse(
+        id=doc.id,
+        tenant_id=doc.tenant_id,
+        filename=doc.filename,
+        mime_type=doc.mime_type,
+        sha256=doc.sha256,
+        page_count=doc.page_count,
+        doc_type=doc.doc_type,
+        doc_type_confidence=doc.doc_type_confidence,
+        status=doc.status,
+        pipeline_version=doc.pipeline_version,
+        error_message=doc.error_message,
+        created_at=doc.created_at,
+        updated_at=doc.updated_at,
+    )
 
 
 @router.post(
