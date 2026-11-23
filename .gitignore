@@ -70,7 +70,7 @@ dmypy.json
 .ruff_cache/
 
 # Storage and Local Data
-storage/
+/storage/
 data/uploads/*
 !data/uploads/.gitkeep
 data/renders/*
