@@ -51,13 +51,24 @@ def repair_and_parse_json(raw_text: str) -> Dict[str, Any]:
     repaired = re.sub(r",\s*([\]}])", r"\1", candidate)
 
     # 3. Replace single quotes around keys/values with double quotes
-    # (Matches 'key': -> "key":)
-    repaired = re.sub(r"(?<=[{\s,])\'([A-Za-z0-9_]+)\'\s*:", r'"\1":', repaired)
+    repaired_quotes = re.sub(r"(?<=[{\s,])\'([A-Za-z0-9_]+)\'\s*:", r'"\1":', repaired)
+    repaired_quotes = re.sub(r":\s*\'([^\']*?)\'", r': "\1"', repaired_quotes)
 
     try:
-        parsed = json.loads(repaired)
+        parsed = json.loads(repaired_quotes)
         if isinstance(parsed, dict):
             return parsed
         return {"data": parsed}
-    except json.JSONDecodeError as err:
+    except json.JSONDecodeError:
+        pass
+
+    # 4. Safe Python literal evaluation fallback for single-quoted dict strings
+    import ast
+    try:
+        evaluated = ast.literal_eval(candidate)
+        if isinstance(evaluated, dict):
+            return evaluated
+        return {"data": evaluated}
+    except Exception:
+        pass
         raise ValueError(f"Failed to repair and parse JSON from model output: {err}\nCandidate: {candidate[:200]}")
