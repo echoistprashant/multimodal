@@ -19,7 +19,7 @@ def normalize_header_text(raw_text: str) -> str:
     """Clean and standardize table header text."""
     # Collapse multiple whitespaces and remove non-alphanumeric punctuation at edges
     cleaned = re.sub(r"\s+", " ", raw_text).strip()
-    cleaned = cleaned.strip(":-_#|")
+    cleaned = cleaned.strip(":-_#| \t\r\n").strip()
     return cleaned
 
 
