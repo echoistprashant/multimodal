@@ -55,7 +55,9 @@ class TextLLMExtractor(ExtractorProtocol):
 
         # 1. Invoice extraction heuristics
         if "invoice" in doc_type:
-            inv_match = re.search(r"(?:invoice|inv)\s*(?:no|number|#)?\s*[:\s]*([A-Za-z0-9-]+)", text, re.I)
+            inv_match = re.search(r"\b(?:invoice|inv)\s*(?:no|number|#)?\s*[:#]\s*([A-Za-z0-9-]+)", text, re.I)
+            if not inv_match:
+                inv_match = re.search(r"#\s*([A-Za-z0-9-]+)", text)
             inv_num = inv_match.group(1) if inv_match else "INV-1001"
 
             vendor_match = re.search(r"vendor[:\s]+([^\n\r]+)", text, re.I)
