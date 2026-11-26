@@ -22,8 +22,8 @@ def _bounding_box_union(boxes: List[Tuple[float, float, float, float]]) -> Tuple
 
 def _recursive_xy_cut(
     items: List[dict],
-    min_horizontal_gap: float = 0.015,
-    min_vertical_gap: float = 0.025,
+    min_horizontal_gap: float = 0.02,
+    min_vertical_gap: float = 0.06,
 ) -> List[List[dict]]:
     """Recursively partition items using alternating horizontal and vertical projection cuts."""
     if len(items) <= 1:
@@ -32,15 +32,49 @@ def _recursive_xy_cut(
     bboxes = [it["bbox"] for it in items]
     num_bins = 1000
 
-    # 1. Attempt Horizontal Cut (splitting vertical paragraphs/sections)
+    # Check for horizontal cuts (e.g. full-width headers/banners or line breaks)
     h_profile = compute_projection_profile(bboxes, axis="horizontal", num_bins=num_bins)
     min_h_bins = int(min_horizontal_gap * num_bins)
-    # Exclude margins (valleys at the very beginning or very end)
-    h_valleys = [v for v in find_projection_valleys(h_profile, min_valley_width=min_h_bins)
-                 if v[0] > 10 and v[1] < num_bins - 10]
+    h_valleys = [
+        v for v in find_projection_valleys(h_profile, min_valley_width=min_h_bins)
+        if v[0] > 10 and v[1] < num_bins - 10
+    ]
+
+    # Check for vertical cuts (column gutters)
+    v_profile = compute_projection_profile(bboxes, axis="vertical", num_bins=num_bins)
+    min_v_bins = int(min_vertical_gap * num_bins)
+    v_valleys = [
+        v for v in find_projection_valleys(v_profile, min_valley_width=min_v_bins)
+        if v[0] > 10 and v[1] < num_bins - 10
+    ]
+
+    # If a full-width header/footer spans across the page, horizontal cut takes priority
+    # Otherwise, if vertical column gutters exist, vertical cut takes priority to keep columns intact
+    choose_vertical = False
+    if v_valleys and not h_valleys:
+        choose_vertical = True
+    elif v_valleys and h_valleys:
+        # Check if any horizontal cut separates an element spanning widely (> 60% page width)
+        has_wide_spanning_block = any((b[2] - b[0]) > 0.60 for b in bboxes)
+        # If there's a wide spanning block (like a top banner), cut horizontally first
+        # If all blocks are narrow column blocks, cut vertically first to preserve column reading
+        if not has_wide_spanning_block:
+            choose_vertical = True
+
+    if choose_vertical and v_valleys:
+        best_valley = max(v_valleys, key=lambda v: v[1] - v[0])
+        cut_x = (best_valley[0] + best_valley[1]) / (2.0 * num_bins)
+
+        left_items = [it for it in items if (it["bbox"][0] + it["bbox"][2]) / 2.0 <= cut_x]
+        right_items = [it for it in items if (it["bbox"][0] + it["bbox"][2]) / 2.0 > cut_x]
+
+        if left_items and right_items:
+            return (
+                _recursive_xy_cut(left_items, min_horizontal_gap, min_vertical_gap)
+                + _recursive_xy_cut(right_items, min_horizontal_gap, min_vertical_gap)
+            )
 
     if h_valleys:
-        # Choose the widest valley to cut
         best_valley = max(h_valleys, key=lambda v: v[1] - v[0])
         cut_y = (best_valley[0] + best_valley[1]) / (2.0 * num_bins)
 
@@ -53,12 +87,7 @@ def _recursive_xy_cut(
                 + _recursive_xy_cut(bottom_items, min_horizontal_gap, min_vertical_gap)
             )
 
-    # 2. Attempt Vertical Cut (splitting side-by-side columns)
-    v_profile = compute_projection_profile(bboxes, axis="vertical", num_bins=num_bins)
-    min_v_bins = int(min_vertical_gap * num_bins)
-    v_valleys = [v for v in find_projection_valleys(v_profile, min_valley_width=min_v_bins)
-                 if v[0] > 10 and v[1] < num_bins - 10]
-
+    # Fallback to vertical cut if not chosen earlier
     if v_valleys:
         best_valley = max(v_valleys, key=lambda v: v[1] - v[0])
         cut_x = (best_valley[0] + best_valley[1]) / (2.0 * num_bins)
@@ -79,7 +108,7 @@ def _recursive_xy_cut(
 def segment_page_layout(
     tokens: List[dict],
     min_horizontal_gap: float = 0.015,
-    min_vertical_gap: float = 0.025,
+    min_vertical_gap: float = 0.06,
 ) -> List[LayoutBlock]:
     """Segment page tokens into hierarchical LayoutBlocks ordered by natural reading sequence.
 
