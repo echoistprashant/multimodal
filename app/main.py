@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.middleware import RequestContextMiddleware
 from app.api.v1.documents import router as documents_router
 from app.api.v1.health import router as health_router
+from app.api.v1.routing import router as routing_router
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
 
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     # Base probes
     app.include_router(health_router, tags=["Health"])
     app.include_router(documents_router)
+    app.include_router(routing_router)
 
     return app
 
