@@ -8,8 +8,8 @@ import re
 from app.triage.encoding import calculate_printable_ratio, detect_encoding_anomalies
 from app.triage.schema import TextLayerHealth
 
-# Simple regex pattern for natural human language words
-WORD_PATTERN = re.compile(r"^[A-Za-z0-9$€£.,%/#-]+$")
+# Regex pattern requiring at least one alphanumeric character along with permissible symbols
+WORD_PATTERN = re.compile(r"^[A-Za-z0-9$€£.,%/#:()_-]*[A-Za-z0-9]+[A-Za-z0-9$€£.,%/#:()_-]*$")
 
 
 def calculate_word_quality_ratio(text: str) -> float:

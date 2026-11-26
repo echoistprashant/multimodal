@@ -12,13 +12,7 @@ def calculate_printable_ratio(text: str) -> float:
     if not text:
         return 0.0
 
-    printable_count = 0
-    for char in text:
-        # Check if character is printable and not a control code
-        cat = unicodedata.category(char)
-        if not cat.startswith("C") and char != "\ufffd":
-            printable_count += 1
-
+    printable_count = sum(1 for char in text if (char.isprintable() or char in "\r\n\t") and char != "\ufffd")
     return round(printable_count / len(text), 4)
 
 
@@ -32,7 +26,7 @@ def detect_encoding_anomalies(text: str) -> tuple[bool, float]:
         return False, 0.0
 
     total_len = len(text)
-    replacement_chars = text.count("\ufffd") + text.count("")
+    replacement_chars = text.count("\ufffd") + text.count("\x00")
     control_chars = sum(1 for c in text if unicodedata.category(c).startswith("C") and c not in "\r\n\t")
 
     anomaly_count = replacement_chars + control_chars
