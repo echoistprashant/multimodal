@@ -14,6 +14,7 @@ from app.api.v1.documents import router as documents_router
 from app.api.v1.fields import router as fields_router
 from app.api.v1.health import router as health_router
 from app.api.v1.metrics import router as metrics_router
+from app.api.v1.process import router as process_router
 from app.api.v1.rag import router as rag_router
 from app.api.v1.reviews import router as reviews_router
 from app.api.v1.routing import router as routing_router
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(reviews_router)
     app.include_router(rag_router)
     app.include_router(metrics_router)
+    app.include_router(process_router)
 
     return app
 
