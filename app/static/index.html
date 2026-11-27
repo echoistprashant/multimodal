@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDIS — Multimodal Document Intelligence Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>MDIS — Multimodal Document Intelligence System</h1>
+      <span>Free-Tier Open-Source OCR, Layout, Grounded Extraction &amp; Hybrid RAG</span>
+    </div>
+    <div class="row">
+      <span id="system-status" class="badge">Checking API...</span>
+      <a href="/api/v1/docs" target="_blank"><button class="secondary">Swagger Docs</button></a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Pipeline Playground -->
+    <section class="card full-width">
+      <h2>
+        <span>1. End-to-End Pipeline Playground (Triage → Layout → Extraction → Grounding → STP → RAG)</span>
+        <span class="pill" id="pipeline-verdict">Idle</span>
+      </h2>
+      <div class="row">
+        <div style="flex: 1; min-width: 220px;">
+          <label class="muted">Document ID</label>
+          <input id="doc-id" value="demo-invoice-001" />
+        </div>
+        <div style="flex: 1; min-width: 220px;">
+          <label class="muted">Tenant ID</label>
+          <input id="tenant-id" value="default-tenant" />
+        </div>
+      </div>
+      <label class="muted">Page 1 Tokens (JSON array with text + normalized [x0, y0, x1, y1] bbox)</label>
+      <textarea id="tokens-input"></textarea>
+      <div class="row">
+        <button id="btn-load-sample" class="secondary">Load Sample Invoice</button>
+        <button id="btn-run-pipeline">Run Full 13-Phase Pipeline</button>
+      </div>
+      <div class="row" style="align-items: flex-start;">
+        <div style="flex: 1.3; min-width: 300px;">
+          <div class="muted" style="margin-bottom: 0.35rem;">Pipeline Output &amp; Grounded Extraction</div>
+          <pre id="pipeline-output">Click "Run Full 13-Phase Pipeline" to execute.</pre>
+        </div>
+        <div style="flex: 0.8; min-width: 260px;">
+          <div class="muted" style="margin-bottom: 0.35rem;">Visual Bounding-Box Grounding Preview</div>
+          <canvas id="bbox-canvas" width="420" height="520"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multimodal RAG Q&A -->
+    <section class="card">
+      <h2>
+        <span>2. Multimodal Hybrid RAG Q&amp;A</span>
+        <span class="pill">Dense + BM25 + RRF</span>
+      </h2>
+      <input id="rag-query" placeholder="Ask about any invoice item, total, or table row..." value="What is the Enterprise Support cost?" />
+      <button id="btn-rag-query">Ask RAG Engine</button>
+      <pre id="rag-output">Index a document above, then ask questions with visual citations.</pre>
+    </section>
+
+    <!-- Human-in-the-Loop Review Queue -->
+    <section class="card">
+      <h2>
+        <span>3. Human-in-the-Loop Review Queue</span>
+        <button id="btn-refresh-reviews" class="secondary">Refresh</button>
+      </h2>
+      <div id="reviews-list" class="muted">No pending review tasks.</div>
+    </section>
+
+    <!-- Observability Metrics -->
+    <section class="card full-width">
+      <h2>
+        <span>4. Live Observability &amp; Stage Latency Metrics</span>
+        <button id="btn-refresh-metrics" class="secondary">Refresh Metrics</button>
+      </h2>
+      <pre id="metrics-output">Loading metrics...</pre>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
