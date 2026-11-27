@@ -55,3 +55,34 @@ async def readiness_check() -> ReadyResponse:
         "database": "configured",
     }
     return ReadyResponse(status="ready", checks=checks)
+
+
+@router.get(
+    "/api/v1/system/info",
+    response_model=dict[str, Any],
+    status_code=status.HTTP_200_OK,
+    summary="System Architecture and Free-Tier Provider Capabilities",
+)
+async def system_info() -> dict[str, Any]:
+    """Return active pipeline stages, supported document types, and free-tier configuration."""
+    settings = get_settings()
+    return {
+        "project": settings.PROJECT_NAME,
+        "version": "1.0.0",
+        "env": settings.ENV,
+        "completed_phases": 13,
+        "pipeline_stages": [
+            "triage_routing",
+            "layout_tables",
+            "structured_extraction",
+            "grounding_provenance",
+            "validation_stp",
+            "rag_indexing",
+        ],
+        "free_tier_stack": {
+            "ocr": settings.OCR_ENGINE,
+            "embeddings": "local_dense_bm25_hybrid",
+            "vector_store": "pgvector_ready",
+            "llm_vlm": "mock_or_free_tier_gemini_ollama",
+        },
+    }
