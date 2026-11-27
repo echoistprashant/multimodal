@@ -66,7 +66,7 @@ Raw Document (PDF / Scan / Photo)
 
 ---
 
-## 🚀 Completed Phases Roadmap (Phases 1 to 9)
+## 🚀 Completed Phases Roadmap (Phases 1 to 13)
 
 ### Phase 1: Project Setup & Repository Scaffold
 - **Part 1.1**: Clean directory structure, dependency definitions in `pyproject.toml`, and `.gitignore`.
@@ -121,6 +121,39 @@ Raw Document (PDF / Scan / Photo)
 - **Part 9.2**: Text-based LLM extractor: Support for OpenAI / local inference with exponential backoff retry handler and zero-cost deterministic mock fallback (`app/extraction/text_llm.py`, `app/extraction/retry.py`).
 - **Part 9.3**: Multimodal Vision VLM engine: Gemini Vision / Qwen2-VL support with `HybridExtractionOrchestrator` providing automatic multimodal fallback upon schema validation failure (`app/extraction/vlm_extractor.py`, `app/extraction/orchestrator.py`).
 - **Part 9.4**: Resilient JSON repair parser (recovering markdown-fenced, single-quoted, or trailing-comma JSON), multi-page line item stitcher (`MultiPageItemStitcher`), and Stage 4 pipeline worker (`app/pipeline/stage4_extraction_worker.py`).
+
+### Phase 10: Grounding, Provenance & Bounding-Box Alignment
+- **Part 10.1**: Levenshtein fuzzy token matcher, sliding-window multi-token span aligner, and bounding-box unioning (`app/grounding/matcher.py`, `app/grounding/aligner.py`, `app/grounding/bbox_merger.py`).
+- **Part 10.2**: Numeric/currency equivalence matcher, multi-format date calendar matcher, and table-cell line-item coordinate resolver (`app/grounding/numeric_matcher.py`, `app/grounding/date_matcher.py`, `app/grounding/table_grounder.py`).
+- **Part 10.3**: Hallucination Guard auditing ungrounded critical fields and persisting provenance (`app/grounding/hallucination_guard.py`, `app/repositories/extraction_repo.py`).
+- **Part 10.4**: `DocumentGrounder`, Stage 5 Grounding Worker, and `GET /api/v1/documents/{id}/fields` provenance API (`app/pipeline/stage5_grounding_worker.py`, `app/api/v1/fields.py`).
+
+### Phase 11: Deterministic Validation, Confidence & Human-in-the-Loop Review
+- **Part 11.1**: Arithmetic validation rules (`qty * unit_price == amount`, `sum(items) == subtotal`, `subtotal + tax == total`) and chronological cross-field checks (`app/validation/`).
+- **Part 11.2**: Composite confidence calculator (OCR + LLM + Grounding + Validation) and temperature/Platt calibration (`app/validation/confidence.py`, `app/validation/calibration.py`).
+- **Part 11.3**: Straight-Through Processing (STP) auto-approval gateway and automatic `ReviewTask` generator (`app/review/stp_gateway.py`, `app/pipeline/stage6_validation_worker.py`).
+- **Part 11.4**: Priority-ordered `ReviewQueueRepository` and `GET /api/v1/reviews`, `POST /api/v1/reviews/{id}/resolve` endpoints (`app/api/v1/reviews.py`).
+
+### Phase 12: Multimodal Indexing, Hybrid Search & RAG Q&A
+- **Part 12.1**: Layout-aware overlapping text chunker, row-preserving table chunker, and figure caption chunker (`app/rag/chunker.py`).
+- **Part 12.2**: Zero-cost deterministic `LocalDenseEmbedder`, `VectorIndexStore` (cosine similarity + tenant isolation), and `BM25Scorer` (`app/rag/`).
+- **Part 12.3**: Reciprocal Rank Fusion (`rrf.py`), lexical overlap reranker (`reranker.py`), and `HybridRetriever` (`app/rag/retriever.py`).
+- **Part 12.4**: Grounded `RAGAnswerGenerator` with page/bbox `VisualCitation` objects, Stage 7 Indexing Worker, and `/api/v1/rag/search` & `/api/v1/rag/query` endpoints (`app/api/v1/rag.py`).
+
+### Phase 13: Evaluation Benchmark, Observability, Full Pipeline & Deployment
+- **Part 13.1**: Exact/fuzzy field F1, hallucination rate, Recall@K, and MRR evaluation benchmark suite (`app/evaluation/`).
+- **Part 13.2**: Thread-safe `MetricsCollector`, `PipelineStageTracer`, and `GET /api/v1/metrics` observability endpoint (`app/observability/`, `app/api/v1/metrics.py`).
+- **Part 13.3**: `MasterPipelineOrchestrator` chaining Triage -> Layout -> Extraction -> Grounding -> Validation -> RAG and `POST /api/v1/documents/{id}/process` (`app/pipeline/master_orchestrator.py`).
+- **Part 13.4**: Production `Dockerfile`, `docker-compose.yml` (PostgreSQL+pgvector, Redis, MinIO, FastAPI), `/api/v1/system/info`, and system integrity tests.
+
+---
+
+## 🐳 Docker Quickstart (100% Free Self-Hosted Stack)
+
+```bash
+docker compose up --build -d
+# API Docs available at http://localhost:8000/api/v1/docs
+```
 
 ---
 
