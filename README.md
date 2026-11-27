@@ -152,7 +152,25 @@ Raw Document (PDF / Scan / Photo)
 
 ```bash
 docker compose up --build -d
-# API Docs available at http://localhost:8000/api/v1/docs
+# Interactive Web UI Dashboard: http://localhost:8000/ui
+# API Swagger Docs:          http://localhost:8000/api/v1/docs
+```
+
+## 💻 Local Development & Usage Guide
+
+```bash
+# 1. Install dependencies (Python 3.12+)
+pip install -e ".[dev]"
+
+# 2. Start the FastAPI server + Interactive Dashboard
+uvicorn app.main:app --reload --port 8000
+
+# 3. Open in Browser:
+#    - Web UI Dashboard: http://localhost:8000/ui
+#    - Swagger API Docs: http://localhost:8000/api/v1/docs
+
+# 4. Run live smoke test against running server
+python scripts/smoke_test.py --base-url http://localhost:8000
 ```
 
 ---
