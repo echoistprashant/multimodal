@@ -6,8 +6,11 @@ and mounts API version routers.
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.middleware import RequestContextMiddleware
 from app.api.v1.documents import router as documents_router
@@ -73,6 +76,15 @@ def create_app() -> FastAPI:
     app.include_router(rag_router)
     app.include_router(metrics_router)
     app.include_router(process_router)
+
+    static_dir = Path(__file__).resolve().parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+        @app.get("/", include_in_schema=False)
+        @app.get("/ui", include_in_schema=False)
+        async def serve_dashboard() -> FileResponse:
+            return FileResponse(str(static_dir / "index.html"))
 
     return app
 
