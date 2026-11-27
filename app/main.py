@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.middleware import RequestContextMiddleware
 from app.api.v1.documents import router as documents_router
+from app.api.v1.fields import router as fields_router
 from app.api.v1.health import router as health_router
 from app.api.v1.routing import router as routing_router
 from app.api.v1.schemas import router as schemas_router
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(documents_router)
     app.include_router(routing_router)
     app.include_router(schemas_router)
+    app.include_router(fields_router)
 
     return app
 
